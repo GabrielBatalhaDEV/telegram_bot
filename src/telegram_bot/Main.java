@@ -14,52 +14,84 @@ import com.pengrad.telegrambot.response.SendResponse;
 
 public class Main {
 
-	public static void main(String[] args) {
-		// Criacao do objeto bot com as informacoes de acesso.
-		TelegramBot bot = new TelegramBot("SEU_TOKEN_ACESSO");
+	public static void main(String[] args) throws Exception {
+		
+		TelegramBot bot = new TelegramBot(DadosBot.BOT_TOKEN);
 
-		// Objeto responsavel por receber as mensagens.
+
+		
+		WheatherAPI wheater = new WheatherAPI();
+		
 		GetUpdatesResponse updatesResponse;
-
-		// Objeto responsavel por gerenciar o envio de respostas.
+		
 		SendResponse sendResponse;
 
-		// Objeto responsavel por gerenciar o envio de acoes do chat.
 		BaseResponse baseResponse;
+		
+		DateTime data = new DateTime();
 
-		// Controle de off-set, isto e, a partir deste ID sera lido as mensagens
-		// pendentes na fila.
 		int m = 0;
-
-		// Loop infinito pode ser alterado por algum timer de intervalo curto.
 		while (true) {
-			// Executa comando no Telegram para obter as mensagens pendentes a partir de um
-			// off-set (limite inicial).
 			updatesResponse = bot.execute(new GetUpdates().limit(100).offset(m));
 
-			// Lista de mensagens.
 			List<Update> updates = updatesResponse.updates();
 
-			// Analise de cada acao da mensagem.
+			String resposta = "";
+			
 			for (Update update : updates) {
 
-				// Atualizacao do off-set.
 				m = update.updateId() + 1;
+				
+
+				
+				
+
+				baseResponse = bot.execute(new SendChatAction(update.message().chat().id(), ChatAction.typing.name()));
+
+				
+				switch (update.message().text()){
+					case "/help":
+						resposta = "/data mostra a data de hoje";
+						resposta += "\n/hora mostra a hora atual";
+						resposta += "\n/tempo mostra o tempo atual";
+						resposta += "\n/temperatura mostra temperatura atual";
+						resposta += "\n/sobre fala sobre o bot";
+						resposta += "\n/help mostra comando do bot";
+						break;
+					case "/data":
+						resposta = data.getData();
+					break;
+					case "/hora":
+						resposta = data.getHora();
+						break;
+					case "/tempo":
+							 resposta = wheater.getTempo();			
+					break;
+					case "/temperatura":
+						resposta = wheater.getTemperatura();
+						break;
+					case "/sobre":
+						
+						resposta = "Este bot consome uma api de previsï¿½o de tempo: HG Weather\n\n"
+								+ "https://hgbrasil.com";
+						break;
+				default:
+					resposta = "Olï¿½ " + update.message().from().firstName() + ",  Sou o bot Tempo \n\nDigite /help para ver informaï¿½ï¿½es sobre os comando";
+					break;
+				}
 
 				System.out.println("Recebendo mensagem: " + update.message().text());
 
-				// Envio de "Escrevendo" antes de enviar a resposta.
-				baseResponse = bot.execute(new SendChatAction(update.message().chat().id(), ChatAction.typing.name()));
+				
 
-				// Verificacao de acao de chat foi enviada com sucesso.
 				System.out.println("Resposta de Chat Action Enviada? " + baseResponse.isOk());
 
-				// Envio da mensagem de resposta.
-				sendResponse = bot.execute(new SendMessage(update.message().chat().id(), "Não entendi..."));
+				sendResponse = bot.execute(new SendMessage(update.message().chat().id(), resposta ));
 
-				// Verificacao de mensagem enviada com sucesso.
-				System.out.println("Mensagem Enviada? " + sendResponse.isOk());
+				System.out.println("Mensagem Enviada? " + sendResponse.isOk());	
+				
 			}
+
 		}
 	}
 }
